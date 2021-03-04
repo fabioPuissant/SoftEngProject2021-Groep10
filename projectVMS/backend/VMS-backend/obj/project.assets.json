@@ -8738,26 +8738,24 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\daves\\.nuget\\packages\\": {}
+    "/Users/fabiopuissant/.nuget/packages/": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\daves\\OneDrive\\Bureaublad\\School\\inf-seng-20-21-team-projectgroep-10\\projectVMS\\backend\\VMS-backend\\VMS-backend.csproj",
+      "projectUniqueName": "/Users/fabiopuissant/UHasselt/SEM1/Software Engineering/inf-seng-20-21-team-projectgroep-10/projectVMS/backend/VMS-backend/VMS-backend.csproj",
       "projectName": "VMS-backend",
-      "projectPath": "C:\\Users\\daves\\OneDrive\\Bureaublad\\School\\inf-seng-20-21-team-projectgroep-10\\projectVMS\\backend\\VMS-backend\\VMS-backend.csproj",
-      "packagesPath": "C:\\Users\\daves\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\daves\\OneDrive\\Bureaublad\\School\\inf-seng-20-21-team-projectgroep-10\\projectVMS\\backend\\VMS-backend\\obj\\",
+      "projectPath": "/Users/fabiopuissant/UHasselt/SEM1/Software Engineering/inf-seng-20-21-team-projectgroep-10/projectVMS/backend/VMS-backend/VMS-backend.csproj",
+      "packagesPath": "/Users/fabiopuissant/.nuget/packages/",
+      "outputPath": "/Users/fabiopuissant/UHasselt/SEM1/Software Engineering/inf-seng-20-21-team-projectgroep-10/projectVMS/backend/VMS-backend/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\daves\\AppData\\Roaming\\NuGet\\NuGet.Config",
-        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        "/Users/fabiopuissant/.config/NuGet/NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "netcoreapp3.1"
       ],
       "sources": {
-        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
@@ -8817,7 +8815,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\5.0.103\\RuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/5.0.103/RuntimeIdentifierGraph.json"
       }
     }
   }
