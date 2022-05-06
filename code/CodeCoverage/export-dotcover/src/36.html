@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>C:\Users\fabio\uhasselt\SEM1\SOFTENG\inf-seng-20-21-team-projectgroep-10\code\VmsApi\VmsApi\CustomAttributes\AllowedUserRoles.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using VmsApi.ViewModels.PostModels;
+
+namespace VmsApi.CustomAttributes
+{
+    public class AllowedUserRoles : ValidationAttribute
+    {
+
+        private string[] _allowedValues;
+
+        public AllowedUserRoles(string[] allowedValues)
+        {
+            _allowedValues = allowedValues;
+        }
+
+        protected override ValidationResult IsValid(object value, ValidationContext validationContext)
+        {
+
+            var model = value as UserUpdateModel;
+            if (model == null)
+            {
+                return new ValidationResult($&quot;Failed to parse {value} to an instance of UserUpdateModel&quot;);
+            }
+
+            if (model?.Roles == null || model.Roles.Count == 0)
+            {
+                return new ValidationResult(&quot;No Roles where given!&quot;);
+            }
+            foreach (string role in model.Roles)
+            {
+                if (!_allowedValues.Contains(role))
+                {
+                    return new ValidationResult($&quot;{ role } is not a valid status&quot;);
+                }
+            }
+
+            return ValidationResult.Success;
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[12,9,12,56,1],[13,9,13,10,1],[14,13,14,44,1],[15,9,15,10,1],[18,9,18,10,1],[20,13,20,50,1],[21,13,21,31,1],[22,13,22,14,1],[23,17,23,107,1],[26,13,26,64,1],[27,13,27,14,1],[28,17,28,70,1],[30,13,30,20,1],[30,22,30,33,1],[30,34,30,36,1],[30,37,30,48,1],[31,13,31,14,1],[32,17,32,52,1],[33,17,33,18,0],[34,21,34,84,0],[36,13,36,14,1],[38,13,38,45,1],[39,9,39,10,1]]);
+    </script>
+  </body>
+</html>

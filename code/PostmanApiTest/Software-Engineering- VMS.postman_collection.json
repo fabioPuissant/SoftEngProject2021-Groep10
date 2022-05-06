@@ -1,0 +1,232 @@
+{
+	"info": {
+		"_postman_id": "297a2d0e-ec10-475f-86d1-8fc80efd8693",
+		"name": "Software-Engineering- VMS",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Register Account",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"email\": \"jane.doe@uhasselt.be\",\r\n    \"firstname\": \"Jane\",\r\n    \"lastname\": \"Doe\",\r\n    \"role\": \"ADMINISTRATOR\",\r\n     \"password\": \"admin123\",\r\n     \"confirmpassword\": \"admin123\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://localhost:44320/api/Accounts/Register",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "44320",
+					"path": [
+						"api",
+						"Accounts",
+						"Register"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "POSTLogin Example",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"email\": \"jane.doe@uhasselt.be\",\r\n    \"firstname\": \"Jane\",\r\n    \"lastname\": \"Doe\",\r\n    \"role\": \"ADMINISTRATOR\",\r\n     \"password\": \"admin123\",\r\n     \"confirmpassword\": \"admin123\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://localhost:44320/api/Accounts/Login",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "44320",
+					"path": [
+						"api",
+						"Accounts",
+						"Login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "POST Login Super User",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"email\": \"xxxx@example.com\",\r\n    \"firstname\": \"John\",\r\n    \"lastname\": \"Doe\",\r\n    \"password\": \"admin123\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://localhost:44320/api/Accounts/Login",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "44320",
+					"path": [
+						"api",
+						"Accounts",
+						"Login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Weger Only",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoiamFuZS5kb2VAdWhhc3NlbHQuYmUiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJBZG1pbmlzdHJhdG9yIiwiZXhwIjoxNjE3MDUyNTcwLCJpc3MiOiJWTVMtQXBwbGljYXRpb25zIiwiYXVkIjoiVk1TLUFwcGxpY2F0aW9ucyJ9.gNIWtYSjYjnyP8JFuw6-POfF6Q4g6nxyBSzIjzqC93Q",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://localhost:44320/api/Examples/auth",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "44320",
+					"path": [
+						"api",
+						"Examples",
+						"auth"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Invalid Register Example",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://localhost:44320/api/Accounts/Register",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "44320",
+					"path": [
+						"api",
+						"Accounts",
+						"Register"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "GET ADMIN only",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoieHh4eEBleGFtcGxlLmNvbSIsImV4cCI6MTYxNzA1MjY0NSwiaXNzIjoiVk1TLUFwcGxpY2F0aW9ucyIsImF1ZCI6IlZNUy1BcHBsaWNhdGlvbnMifQ.FyD6cCdMTgofY3RAFRbtxANn9-zWKasXvQuxkxc0HTs",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://localhost:44320/api/Examples/test-admin",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "44320",
+					"path": [
+						"api",
+						"Examples",
+						"test-admin"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "DELETE Account",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoiamFuZS5kb2VAdWhhc3NlbHQuYmUiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJBZG1pbmlzdHJhdG9yIiwiZXhwIjoxNjE3MDQxMzc4LCJpc3MiOiJWTVMtQXBwbGljYXRpb25zIiwiYXVkIjoiVk1TLUFwcGxpY2F0aW9ucyJ9.IZEJvlsnK_hkpsuIqmphwrxoxvRUy7ECa_X1i7RupnA",
+							"type": "string"
+						}
+					]
+				},
+				"method": "DELETE",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://localhost:44320/api/Accounts/delete/5629ac08-969b-4199-ae8e-1e5bb8c3ff12",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "44320",
+					"path": [
+						"api",
+						"Accounts",
+						"delete",
+						"5629ac08-969b-4199-ae8e-1e5bb8c3ff12"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

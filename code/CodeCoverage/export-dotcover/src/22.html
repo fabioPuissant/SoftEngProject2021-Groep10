@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>C:\Users\fabio\uhasselt\SEM1\SOFTENG\inf-seng-20-21-team-projectgroep-10\code\VmsApi\VmsApi.Data\Repositories\PigGroupRepo.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using VmsApi.Data.DataDbContext;
+using VmsApi.Data.Exceptions;
+using VmsApi.Data.Mappers;
+using VmsApi.Data.Models;
+using VmsApi.Data.Repositories.interfaces;
+
+namespace VmsApi.Data.Repositories
+{
+    public class PigGroupRepo : IPigGroupRepo
+    {
+        private readonly VmsDbContext _context;
+
+        public PigGroupRepo(VmsDbContext context)
+        {
+            _context = context;
+        }
+
+        // #biggen totaal gewicht gemideld gewicht/big bij de laatste include
+        public async Task&lt;List&lt;DetailedPigGroup&gt;&gt; GetAll()
+        {
+            var groups = from g in _context.PigGroups
+                select new DetailedPigGroup
+                {
+                    Id = g.Id,
+                    GroupNumber = g.GroupNumber,
+                    BirthDate = g.BirthDate,
+                    TotalPigs = g.MeasurePoints.OrderByDescending(m =&gt; m.Date).FirstOrDefault().Amount,
+                    TotalWeight = g.MeasurePoints.OrderByDescending(m =&gt; m.Date).FirstOrDefault().Weight,
+                    AverageWeight = (g.MeasurePoints.OrderByDescending(m =&gt; m.Date).FirstOrDefault().Weight /
+                                     g.MeasurePoints.OrderByDescending(m =&gt; m.Date).FirstOrDefault().Amount),
+                };
+
+            return await groups.ToListAsync();
+        }
+
+        public async Task&lt;PigGroup&gt; GetById(Guid id)
+        {
+            return await _context.PigGroups
+                .Include(p =&gt; p.MeasurePoints)
+                .Include(p =&gt; p.FoodPurchases)
+                .FirstOrDefaultAsync(pigGroup =&gt; pigGroup.Id == id);
+        }
+
+        // Alle groepen die geboren zijn tussen bepaalde dagen
+        [ExcludeFromCodeCoverage]
+        public async Task&lt;List&lt;DetailedPigGroup&gt;&gt; GetAllByDate(DateTime? startDateTime, DateTime? endDateTime)
+        {
+            if (startDateTime == null &amp;&amp; endDateTime == null)
+            {
+                throw new DatePigGroupException(&quot;Start- and End date were null&quot;);
+            }
+
+            if (startDateTime.HasValue &amp;&amp; endDateTime.HasValue &amp;&amp; startDateTime.Value &gt; endDateTime.Value)
+            {
+                throw new DatePigGroupException(&quot;Start Date must come before End Date&quot;);
+            }
+
+            if (startDateTime.HasValue &amp;&amp; endDateTime.HasValue)
+            {
+                var groupsBetween = from g in _context.PigGroups
+                    where g.BirthDate &gt;= startDateTime.Value &amp;&amp; g.BirthDate &lt;= endDateTime.Value
+                    select new DetailedPigGroup
+                    {
+                        Id = g.Id,
+                        GroupNumber = g.GroupNumber,
+                        BirthDate = g.BirthDate,
+                        TotalPigs = g.MeasurePoints.OrderByDescending(m =&gt; m.Date).FirstOrDefault().Amount,
+                        TotalWeight = g.MeasurePoints.OrderByDescending(m =&gt; m.Date).FirstOrDefault().Weight,
+                        AverageWeight = (g.MeasurePoints.OrderByDescending(m =&gt; m.Date).FirstOrDefault().Weight /
+                                         g.MeasurePoints.OrderByDescending(m =&gt; m.Date).FirstOrDefault().Amount),
+                    };
+                return await groupsBetween.ToListAsync();
+            }
+
+            if (startDateTime.HasValue)
+            {
+                var groupsFromStartDate = from g in _context.PigGroups
+                    where g.BirthDate &gt;= startDateTime.Value
+                    select new DetailedPigGroup
+                    {
+                        Id = g.Id,
+                        GroupNumber = g.GroupNumber,
+                        BirthDate = g.BirthDate,
+                        TotalPigs = g.MeasurePoints.OrderByDescending(m =&gt; m.Date).FirstOrDefault().Amount,
+                        TotalWeight = g.MeasurePoints.OrderByDescending(m =&gt; m.Date).FirstOrDefault().Weight,
+                        AverageWeight = (g.MeasurePoints.OrderByDescending(m =&gt; m.Date).FirstOrDefault().Weight /
+                                         g.MeasurePoints.OrderByDescending(m =&gt; m.Date).FirstOrDefault().Amount),
+                    };
+                return await groupsFromStartDate.ToListAsync();
+            }
+
+            var groupsBeforeEndDate = from g in _context.PigGroups
+                where g.BirthDate &lt;= endDateTime.Value
+                select new DetailedPigGroup
+                {
+                    Id = g.Id,
+                    GroupNumber = g.GroupNumber,
+                    BirthDate = g.BirthDate,
+                    TotalPigs = g.MeasurePoints.OrderByDescending(m =&gt; m.Date).FirstOrDefault().Amount,
+                    TotalWeight = g.MeasurePoints.OrderByDescending(m =&gt; m.Date).FirstOrDefault().Weight,
+                    AverageWeight = (g.MeasurePoints.OrderByDescending(m =&gt; m.Date).FirstOrDefault().Weight /
+                                     g.MeasurePoints.OrderByDescending(m =&gt; m.Date).FirstOrDefault().Amount),
+                };
+            return await groupsBeforeEndDate.ToListAsync();
+        }
+
+        public async Task&lt;PigGroup&gt; Create(PigGroup pigGroup)
+        {
+            await _context.PigGroups.AddAsync(pigGroup);
+            await _context.SaveChangesAsync();
+
+            return pigGroup;
+        }
+
+        public async Task&lt;PigGroup&gt; Update(Guid id, PigGroup updatedItem)
+        {
+            updatedItem.Id = id;
+            await Task.Run(() =&gt; _context.Entry(updatedItem).State = EntityState.Modified);
+            await _context.SaveChangesAsync();
+            return updatedItem;
+        }
+    }
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[19,9,19,50,0],[20,9,20,10,0],[21,13,21,32,0],[22,9,22,10,0],[26,9,26,10,0],[27,13,37,19,0],[39,13,39,47,0],[40,9,40,10,0],[43,9,43,10,0],[44,13,47,69,0],[48,9,48,10,0],[114,9,114,10,0],[115,13,115,57,0],[116,13,116,47,0],[118,13,118,29,0],[119,9,119,10,0],[122,9,122,10,0],[123,13,123,33,0],[124,13,124,92,0],[124,34,124,90,0],[125,13,125,47,0],[126,13,126,32,0],[127,9,127,10,0]]);
+    </script>
+  </body>
+</html>

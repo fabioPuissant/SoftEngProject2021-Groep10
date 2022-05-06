@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>C:\Users\fabio\uhasselt\SEM1\SOFTENG\inf-seng-20-21-team-projectgroep-10\code\VmsApi\VmsApi.Test\CustomAttributes\AllowedUserRolesTests.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Security.AccessControl;
+using NUnit.Framework;
+using VmsApi.CustomAttributes;
+using VmsApi.Data.Utils;
+using VmsApi.ViewModels.PostModels;
+
+namespace VmsApi.Test.CustomAttributes
+{
+    [TestFixture]
+    public class AllowedUserRolesTests
+    {
+        private string[] _validRoles;
+        private AllowedUserRoles _sut;
+
+        [SetUp]
+        public void SetUp()
+        {
+            // Arrange
+            _validRoles = AppRolesDict.ApplicationRoles.Values.Select(x =&gt; x.Name).ToArray();
+            _sut = new AllowedUserRoles(_validRoles);
+        }
+
+        [Test]
+        public void IsValid_Should_Return_True_When_Given_Roles_Are_Allowed()
+        {
+            // Arrange
+            var usermodel = new UserUpdateModel
+            {
+                Roles = _validRoles.ToList()
+            };
+
+            // Act
+            var result = _sut.IsValid(usermodel);
+
+            // Assert
+            Assert.True(result);
+        }
+
+        [Test]
+        [TestCase(&quot;Invalid_User_Role&quot;)]
+        public void IsValid_Should_Return_Failed_ValidationResult_When_Given_Roles_Are_Invalid(string invalidUserRole)
+        {
+            // Arrange
+            var invalidUser = new UserUpdateModel
+            {
+                Roles = new List&lt;string&gt; {invalidUserRole}
+            };
+
+            // Act
+            var actual = _sut.IsValid(invalidUserRole);
+
+            // Assert
+            Assert.False(actual);
+        }
+
+        [Test]
+        public void IsValid_Should_Return_Failed_ValidationResult_When_Not_Instance_Of_UserUpdateModel_Is_Passed()
+        {
+            // Arrange
+            var invalidObject = new {};
+
+            // Act
+            var actual = _sut.IsValid(invalidObject);
+
+            // Assert
+            Assert.False(actual);
+        }
+
+        [Test]
+        public void IsValid_Should_Return_Failed_ValidationResult_When_No_Roles_Are_Sent_With_UpdateUserModel()
+        {
+            var modelWithNoRoles = new UserUpdateModel();
+
+            // Act
+            var actual = _sut.IsValid(modelWithNoRoles);
+
+            // Assert
+            Assert.False(actual);
+        }
+    }
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[20,9,20,10,1],[22,13,22,76,1],[22,76,22,82,1],[22,82,22,94,1],[23,13,23,54,1],[24,9,24,10,1],[28,9,28,10,1],[30,13,33,15,1],[36,13,36,50,1],[39,13,39,33,1],[40,9,40,10,1],[45,9,45,10,1],[47,13,50,15,1],[53,13,53,56,1],[56,13,56,34,1],[57,9,57,10,1],[61,9,61,10,1],[63,13,63,40,1],[66,13,66,54,1],[69,13,69,34,1],[70,9,70,10,1],[74,9,74,10,1],[75,13,75,58,1],[78,13,78,57,1],[81,13,81,34,1],[82,9,82,10,1]]);
+    </script>
+  </body>
+</html>

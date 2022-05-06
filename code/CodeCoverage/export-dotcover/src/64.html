@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>C:\Users\fabio\uhasselt\SEM1\SOFTENG\inf-seng-20-21-team-projectgroep-10\code\VmsApi\VmsApi.Test\Controllers\TaskItemControllerTest.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using AutoMapper;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Moq;
+using NUnit.Framework;
+using VmsApi.Controllers;
+using VmsApi.Data.Exceptions;
+using VmsApi.Data.Models;
+using VmsApi.Data.Repositories;
+using VmsApi.ViewModels;
+using VmsApi.ViewModels.PostModels;
+
+namespace VmsApi.Test.Controllers
+{
+    [TestFixture]
+    public class TaskItemControllerTest
+    {
+        private Mock&lt;ITaskItemRepository&gt; _repoMock;
+        private Mock&lt;IMapper&gt; _mapperMock;
+        private TaskItemsController _sut;
+
+        [SetUp]
+        public void SetUp()
+        {
+            _repoMock = new Mock&lt;ITaskItemRepository&gt;();
+            _mapperMock = new Mock&lt;IMapper&gt;();
+
+            _sut = new TaskItemsController(
+                _repoMock.Object,
+                _mapperMock.Object);
+        }
+
+        [Test]
+        public async Task Should_Get_All_TaskItems()
+        {
+            // Arrange
+            IList&lt;TaskItem&gt; expected = this.CreateDefaultListOfTaskItems();
+            _repoMock.Setup(x =&gt; x.GetAllAsync()).ReturnsAsync(expected);
+
+            // Act
+            var result = await _sut.GetAsync() as OkObjectResult;
+            IList&lt;TaskItem&gt; actual;
+
+            // Assert
+            Assert.NotNull(result);
+            actual = result.Value as IList&lt;TaskItem&gt;;
+            Assert.NotNull(actual);
+
+            Assert.AreEqual(expected, actual);
+            _repoMock.Verify(x =&gt; x.GetAllAsync(), Times.Once);
+            _repoMock.Verify(x =&gt; x.SaveAsync(), Times.Never);
+        }
+
+        [Test]
+        public async Task GetByIdAsync_Should_Return_TaskItem_By_Id_If_Exists()
+        {
+            // Arrange
+            TaskItem expected = new TaskItemBuilder().WithId(Guid.NewGuid()).Build();
+            _repoMock.Setup(x =&gt; x.GetByIdAsync(It.IsAny&lt;Guid&gt;())).ReturnsAsync(expected);
+
+            // Act
+            var result = await _sut.GetByIdAsync(expected.Id) as OkObjectResult;
+            TaskItem actual;
+
+            // Assert
+            Assert.NotNull(result);
+            actual = result.Value as TaskItem;
+            Assert.NotNull(actual);
+            Assert.AreEqual(expected, actual);
+            _repoMock.Verify(x =&gt; x.GetByIdAsync(expected.Id), Times.Once);
+            _repoMock.Verify(x =&gt; x.SaveAsync(), Times.Never);
+        }
+
+        [Test]
+        public async Task GetByIdAsync_Should_Return_NotFound_When_No_TaskItem_Is_Found()
+        {
+            // Arrange
+            TaskItem item = CreateDefaultTaskItem();
+            var expected = $&quot;No TaskITem Found with Id {item.Id}&quot;;
+            _repoMock.Setup(x =&gt; x.GetByIdAsync(It.IsAny&lt;Guid&gt;())).Throws&lt;IdException&gt;();
+
+            // Act
+            var result = await _sut.GetByIdAsync(item.Id) as NotFoundObjectResult;
+
+            // Assert
+            Assert.NotNull(result);
+            var actual = result.Value as ErrorMessageResult;
+            Assert.NotNull(actual);
+            Assert.AreEqual(expected, actual.Message);
+            _repoMock.Verify(x =&gt; x.GetByIdAsync(item.Id), Times.Once);
+            _repoMock.Verify(x =&gt; x.SaveAsync(), Times.Never);
+        }
+
+        [Test]
+        public async Task PostAsync_Should_Return_OkObjectResult_When_Adding_TaskItem_To_Database_Is_Successful()
+        {
+            // Arrange
+            var model = CreateDefaultPostTaskItemModel();
+            var expected = CreateDefaultTaskItem();
+            _mapperMock.Setup(x =&gt; x.Map&lt;TaskItem&gt;(model)).Returns(expected);
+            _repoMock.Setup(x =&gt; x.AddAsync(It.IsAny&lt;TaskItem&gt;()));
+            _repoMock.Setup(x =&gt; x.SaveAsync());
+
+            // Act
+            var result = await _sut.PostAsync(model) as OkObjectResult;
+
+            // Assert
+            Assert.NotNull(result);
+            var actual = result.Value as TaskItem;
+            Assert.NotNull(actual);
+            Assert.AreEqual(expected, actual);
+            _mapperMock.Verify(x =&gt; x.Map&lt;TaskItem&gt;(model), Times.Once);
+            _repoMock.Verify(x =&gt; x.AddAsync(expected), Times.Once);
+            _repoMock.Verify(x =&gt; x.SaveAsync(), Times.Once);
+        }
+
+        [Test]
+        public async Task PostAsync_Should_Return_BadRequest_Result_When_ModelState_Is_Invalid()
+        {
+            // Arrange
+            var model = CreateDefaultPostTaskItemModel();
+            string expected = &quot;TaskItem model is invalid&quot;;
+            _sut.ModelState.AddModelError(&quot;Systen Under Test&quot;, &quot;System Under Test ModelState Generated Exception&quot;);
+            _mapperMock.Setup(x =&gt; x.Map&lt;TaskItem&gt;(model));
+            _repoMock.Setup(x =&gt; x.AddAsync(It.IsAny&lt;TaskItem&gt;()));
+            _repoMock.Setup(x =&gt; x.SaveAsync());
+
+            // Act
+            var result = await _sut.PostAsync(model) as BadRequestObjectResult;
+
+            // Assert
+            Assert.NotNull(result);
+            var actual = result.Value as ErrorMessageResult;
+            Assert.NotNull(actual);
+            Assert.AreEqual(expected, actual.Message);
+            _mapperMock.Verify(x =&gt; x.Map&lt;TaskItem&gt;(model), Times.Never);
+            _repoMock.Verify(x =&gt; x.AddAsync(It.IsAny&lt;TaskItem&gt;()), Times.Never);
+            _repoMock.Verify(x =&gt; x.SaveAsync(), Times.Never);
+        }
+
+        [Test]
+        public async Task PostAsync_Should_Return_BadRequest_When_Exception_Thrown()
+        {
+            // Arrange
+            var model = CreateDefaultPostTaskItemModel();
+            _mapperMock.Setup(x =&gt; x.Map&lt;TaskItem&gt;(model));
+            _repoMock.Setup(x =&gt; x.AddAsync(It.IsAny&lt;TaskItem&gt;())).Throws(new Exception());
+            _repoMock.Setup(x =&gt; x.SaveAsync());
+
+            // Act
+            var result = await _sut.PostAsync(model) as BadRequestResult;
+
+            // Assert
+            Assert.NotNull(result);
+            _mapperMock.Verify(x =&gt; x.Map&lt;TaskItem&gt;(model), Times.Once);
+            _repoMock.Verify(x =&gt; x.AddAsync(It.IsAny&lt;TaskItem&gt;()), Times.Once);
+            _repoMock.Verify(x =&gt; x.SaveAsync(), Times.Never);
+        }
+
+        [Test]
+        public async Task PutAsync_Should_Return_BadRequest_When_DbUpdateConcurrencyException_Thrown()
+        {
+            // Arrange
+            var model = CreateDefaultPostTaskItemModel();
+            var item = CreateDefaultTaskItem();
+            var testId = new Guid();
+            _mapperMock.Setup(x =&gt; x.Map&lt;TaskItem&gt;(model)).Returns(item);
+            _repoMock.Setup(x =&gt; x.UpdateAsync(It.IsAny&lt;Guid&gt;(), It.IsAny&lt;TaskItem&gt;())).Throws(new DbUpdateConcurrencyException());
+            _repoMock.Setup(x =&gt; x.SaveAsync());
+
+            // Act
+            var result = await _sut.PutAsync(testId, model) as BadRequestResult;
+
+            // Assert
+            Assert.NotNull(result);
+            _mapperMock.Verify(x =&gt; x.Map&lt;TaskItem&gt;(model), Times.Once);
+            _repoMock.Verify(x =&gt; x.UpdateAsync(testId, item), Times.Once);
+            _repoMock.Verify(x =&gt; x.SaveAsync(), Times.Never);
+        }
+
+        [Test]
+        public async Task PutAsync_Should_Return_NotFound_When_IdException_Thrown()
+        {
+            // Arrange
+            var model = CreateDefaultPostTaskItemModel();
+            var item = CreateDefaultTaskItem();
+            var testId = item.Id;
+            var expected = $&quot;No TaskITem Found with Id {testId}&quot;;
+            _mapperMock.Setup(x =&gt; x.Map&lt;TaskItem&gt;(model)).Returns(item);
+            _repoMock.Setup(x =&gt; x.UpdateAsync(It.IsAny&lt;Guid&gt;(), It.IsAny&lt;TaskItem&gt;())).Throws(new IdException());
+            _repoMock.Setup(x =&gt; x.SaveAsync());
+
+            // Act
+            var result = await _sut.PutAsync(testId, model) as NotFoundObjectResult;
+
+            // Assert
+            Assert.NotNull(result);
+            var actual = result.Value as ErrorMessageResult;
+            Assert.NotNull(actual);
+            Assert.AreEqual(expected, actual.Message);
+            _mapperMock.Verify(x =&gt; x.Map&lt;TaskItem&gt;(model), Times.Once);
+            _repoMock.Verify(x =&gt; x.UpdateAsync(testId, item), Times.Once);
+            _repoMock.Verify(x =&gt; x.SaveAsync(), Times.Never);
+        }
+
+        [Test]
+        public async Task PutAsync_Should_Return_BadRequest_Result_When_ModelState_Is_Invalid()
+        {
+            // Arrange
+            var model = CreateDefaultPostTaskItemModel();
+            string expected = &quot;TaskItem model is invalid&quot;;
+            _sut.ModelState.AddModelError(&quot;System Under Test&quot;, &quot;System Under Test ModelState Generated Exception&quot;);
+            _mapperMock.Setup(x =&gt; x.Map&lt;TaskItem&gt;(model));
+            _repoMock.Setup(x =&gt; x.UpdateAsync(It.IsAny&lt;Guid&gt;(), It.IsAny&lt;TaskItem&gt;()));
+            _repoMock.Setup(x =&gt; x.SaveAsync());
+
+            // Act
+            var result = await _sut.PutAsync(It.IsAny&lt;Guid&gt;(), model) as BadRequestObjectResult;
+
+            // Assert
+            Assert.NotNull(result);
+            var actual = result.Value as ErrorMessageResult;
+            Assert.NotNull(actual);
+            Assert.AreEqual(expected, actual.Message);
+            _mapperMock.Verify(x =&gt; x.Map&lt;TaskItem&gt;(model), Times.Never);
+            _repoMock.Verify(x =&gt; x.UpdateAsync(It.IsAny&lt;Guid&gt;(), It.IsAny&lt;TaskItem&gt;()), Times.Never);
+            _repoMock.Verify(x =&gt; x.SaveAsync(), Times.Never);
+        }
+
+        [Test]
+        public async Task PutAsync_Should_Return_OkObjectResult_When_TaskItem_Correctly_Updated()
+        {
+            // Arrange
+            var model = CreateDefaultPostTaskItemModel();
+            var expected = CreateDefaultTaskItem();
+            _mapperMock.Setup(x =&gt; x.Map&lt;TaskItem&gt;(model)).Returns(expected);
+            _repoMock.Setup(x =&gt; x.UpdateAsync(expected.Id, expected));
+            _repoMock.Setup(x =&gt; x.SaveAsync());
+
+            // Act
+            var result = await _sut.PutAsync(expected.Id, model) as OkObjectResult;
+
+            // Assert
+            Assert.NotNull(result);
+            var actual = result.Value as TaskItem;
+            Assert.NotNull(actual);
+            Assert.AreEqual(expected, actual);
+            _mapperMock.Verify(x =&gt; x.Map&lt;TaskItem&gt;(model), Times.Once);
+            _repoMock.Verify(x =&gt; x.UpdateAsync(expected.Id, It.IsAny&lt;TaskItem&gt;()), Times.Once);
+            _repoMock.Verify(x =&gt; x.SaveAsync(), Times.Once);
+        }
+
+        [Test]
+        public async Task DeleteAsync_Should_Return_OkObjectResult_When_TaskItem_Successfully_Deleted()
+        {
+            // Arrange
+            var found = CreateDefaultTaskItem();
+            _repoMock.Setup(x =&gt; x.GetByIdAsync(found.Id)).ReturnsAsync(found);
+            _repoMock.Setup(x =&gt; x.DeleteAsync(found));
+            _repoMock.Setup(x =&gt; x.SaveAsync());
+
+            // Act
+            var result = await _sut.Delete(found.Id) as NoContentResult;
+
+            // Assert
+            Assert.NotNull(result);
+            _repoMock.Verify(x =&gt; x.GetByIdAsync(found.Id), Times.Once);
+            _repoMock.Verify(x =&gt; x.DeleteAsync(found), Times.Once);
+            _repoMock.Verify(x =&gt; x.SaveAsync(), Times.Once);
+        }
+
+        [Test]
+        public async Task DeleteAsync_Should_Return_NotFoundObjectResult_When_No_TaskItem_With_Given_Id_Has_Been_Found()
+        {
+            // Arrange
+            var found = CreateDefaultTaskItem();
+            var expected = $&quot;No TaskITem Found with Id {found.Id}&quot;;
+            _repoMock.Setup(x =&gt; x.GetByIdAsync(found.Id)).Throws(new IdException());
+
+            // Act
+            var result = await _sut.Delete(found.Id) as NotFoundObjectResult;
+
+            // Assert
+            Assert.NotNull(result);
+            var actual = result.Value as ErrorMessageResult;
+            Assert.AreEqual(expected, actual.Message);
+            _repoMock.Verify(x =&gt; x.GetByIdAsync(found.Id), Times.Once);
+            _repoMock.Verify(x =&gt; x.DeleteAsync(found), Times.Never);
+            _repoMock.Verify(x =&gt; x.SaveAsync(), Times.Never);
+        }
+
+        [Test]
+        public async Task DeleteAsync_Should_Return_BadRequestResult_When_Exception_Has_Been_Thrown()
+        {
+            // Arrange
+            var found = CreateDefaultTaskItem();
+            _repoMock.Setup(x =&gt; x.GetByIdAsync(found.Id)).ReturnsAsync(found);
+            _repoMock.Setup(x =&gt; x.DeleteAsync(found));
+            _repoMock.Setup(x =&gt; x.SaveAsync()).Throws(new Exception());
+
+            // Act
+            var result = await _sut.Delete(found.Id) as BadRequestResult;
+
+            // Assert
+            Assert.NotNull(result);
+            _repoMock.Verify(x =&gt; x.GetByIdAsync(found.Id), Times.Once);
+            _repoMock.Verify(x =&gt; x.DeleteAsync(found), Times.Once);
+            _repoMock.Verify(x =&gt; x.SaveAsync(), Times.Once);
+        }
+
+
+        [Test]
+        public async Task AssignUserToTaskPostAsync_Should_Return_BadRequestResult_When_ModelState_Is_Invalid()
+        {
+            // Arrange
+            _sut.ModelState.AddModelError(&quot;System Under Test&quot;, &quot;System Under Test ModelState Generated Exception&quot;);
+            string expected = &quot;Model is invalid&quot;;
+
+            // Act
+            var result = await _sut.AssignUserToTaskPostAsync(It.IsAny&lt;Guid&gt;(), It.IsAny&lt;AssignTaskToUserModel&gt;()) as BadRequestObjectResult;
+            // Assert
+            Assert.NotNull(result);
+            var actual = result.Value as ErrorMessageResult;
+
+            Assert.NotNull(actual);
+            Assert.AreEqual(expected, actual.Message);
+
+            _repoMock.Verify(x =&gt; x.AddUserToTask(It.IsAny&lt;Guid&gt;(), It.IsAny&lt;Guid&gt;()), Times.Never);
+            _repoMock.Verify(x =&gt; x.SaveAsync(), Times.Never);
+        }
+
+        [Test]
+        public async Task AssignUserToTaskPostAsync_Should_Return_BadRequestResult_When_Route_TaskId_And_TaskId_From_Body_Do_Not_Match()
+        {
+            // Arrange
+            Guid routeTaskItemId = Guid.NewGuid();
+            Guid bodyTaskItemId = Guid.Empty;
+            string expected = $&quot;Task ID&#39;s do not match. Id in Route was: {routeTaskItemId.ToString()}, Id in Body was {bodyTaskItemId.ToString()}&quot;;
+            var model = new AssignTaskToUserModel() {TaskId = bodyTaskItemId};
+
+            // Act
+            var result = await _sut.AssignUserToTaskPostAsync(routeTaskItemId, model) as BadRequestObjectResult;
+            
+            // Assert
+            Assert.NotNull(result);
+            var actual = result.Value as ErrorMessageResult;
+
+            Assert.NotNull(actual);
+            Assert.AreEqual(expected, actual.Message);
+
+            _repoMock.Verify(x =&gt; x.AddUserToTask(It.IsAny&lt;Guid&gt;(), It.IsAny&lt;Guid&gt;()), Times.Never);
+            _repoMock.Verify(x =&gt; x.SaveAsync(), Times.Never);
+        }
+
+
+        [Test]
+        public async Task AssignUserToTaskPostAsync_Should_Return_NotFoundObjectResult_When_Task_Not_Found()
+        {
+            // Arrange
+            Guid routeTaskItemId = Guid.NewGuid();
+            var model = new AssignTaskToUserModel() { TaskId = routeTaskItemId, UserId = new Guid()};
+            string expected = $&quot;No TaskItem found with Id of {routeTaskItemId}&quot;;
+            _repoMock.Setup(x =&gt; x.AddUserToTask(routeTaskItemId, model.UserId)).ThrowsAsync(new NoEntityFoundException(expected));
+
+            // Act
+            var result = await _sut.AssignUserToTaskPostAsync(routeTaskItemId, model) as NotFoundObjectResult;
+
+            // Assert
+            Assert.NotNull(result);
+            var actual = result.Value as ErrorMessageResult;
+
+            Assert.NotNull(actual);
+            Assert.AreEqual(expected, actual.Message);
+
+            _repoMock.Verify(x =&gt; x.AddUserToTask(It.IsAny&lt;Guid&gt;(), It.IsAny&lt;Guid&gt;()), Times.Once);
+            _repoMock.Verify(x =&gt; x.SaveAsync(), Times.Never);
+        }
+
+        [Test]
+        public async Task AssignUserToTaskPostAsync_Should_Return_NotFoundObjectResult_When_User_Not_Found()
+        {
+            // Arrange
+            Guid routeTaskItemId = Guid.NewGuid();
+            var model = new AssignTaskToUserModel() { TaskId = routeTaskItemId, UserId = new Guid() };
+            string expected = $&quot;No User found with Id of {model.UserId.ToString()}&quot;;
+            _repoMock.Setup(x =&gt; x.AddUserToTask(routeTaskItemId, model.UserId)).ThrowsAsync(new NoEntityFoundException(expected));
+
+            // Act
+            var result = await _sut.AssignUserToTaskPostAsync(routeTaskItemId, model) as NotFoundObjectResult;
+
+            // Assert
+            Assert.NotNull(result);
+            var actual = result.Value as ErrorMessageResult;
+
+            Assert.NotNull(actual);
+            Assert.AreEqual(expected, actual.Message);
+
+            _repoMock.Verify(x =&gt; x.AddUserToTask(It.IsAny&lt;Guid&gt;(), It.IsAny&lt;Guid&gt;()), Times.Once);
+            _repoMock.Verify(x =&gt; x.SaveAsync(), Times.Never);
+        }
+
+        [Test]
+        public async Task AssignUserToTaskPostAsync_Should_Return_BadRequestResult_When_User_Already_Assigned_To_Task()
+        {
+            // Arrange
+            Guid routeTaskItemId = Guid.NewGuid();
+            var model = new AssignTaskToUserModel() { TaskId = routeTaskItemId, UserId = new Guid() };
+            string expected = $&quot;No User found with Id of {model.UserId.ToString()}&quot;;
+            _repoMock.Setup(x =&gt; x.AddUserToTask(routeTaskItemId, model.UserId)).ThrowsAsync(new TaskUserAssignedException(expected));
+
+            // Act
+            var result = await _sut.AssignUserToTaskPostAsync(routeTaskItemId, model) as BadRequestObjectResult;
+
+            // Assert
+            Assert.NotNull(result);
+            var actual = result.Value as ErrorMessageResult;
+            Assert.NotNull(actual);
+            Assert.AreEqual(expected, actual.Message);
+
+            _repoMock.Verify(x =&gt; x.AddUserToTask(It.IsAny&lt;Guid&gt;(), It.IsAny&lt;Guid&gt;()), Times.Once);
+            _repoMock.Verify(x =&gt; x.SaveAsync(), Times.Never);
+        }
+
+        [Test]
+        public async Task AssignUserToTaskPostAsync_Should_Return_BadRequest_When_Exception_Thrown() //BadRequest here, because users do not need to see the internal exceptions of the system =&gt; Vulnerability!
+        {
+            // Arrange
+            // Act
+            var result = await _sut.AssignUserToTaskPostAsync(It.IsAny&lt;Guid&gt;(), It.IsAny&lt;AssignTaskToUserModel&gt;()) as BadRequestResult;
+
+            // Assert
+            Assert.NotNull(result);
+            _repoMock.Verify(x =&gt; x.AddUserToTask(It.IsAny&lt;Guid&gt;(), It.IsAny&lt;Guid&gt;()), Times.Never);
+            _repoMock.Verify(x =&gt; x.SaveAsync(), Times.Never);
+        }
+
+        [Test]
+        public async Task AssignUserToTaskPostAsync_Should_Return_NoContent_When_User_Successful_Assigned_User_To_Task()
+        {
+            // Arrange
+            Guid routeTaskItemId = Guid.NewGuid();
+            var model = new AssignTaskToUserModel() { TaskId = routeTaskItemId, UserId = new Guid() };
+            _repoMock.Setup(x =&gt; x.AddUserToTask(routeTaskItemId, model.UserId));
+
+            // Act
+            var result = await _sut.AssignUserToTaskPostAsync(routeTaskItemId, model) as NoContentResult;
+
+            // Assert
+            Assert.NotNull(result);
+            _repoMock.Verify(x =&gt; x.AddUserToTask(It.IsAny&lt;Guid&gt;(), It.IsAny&lt;Guid&gt;()), Times.Once);
+            _repoMock.Verify(x =&gt; x.SaveAsync(), Times.Once);
+        }
+
+
+        private IList&lt;TaskItem&gt; CreateDefaultListOfTaskItems()
+        {
+            return new List&lt;TaskItem&gt;
+            {
+                new TaskItemBuilder().WithId(Guid.NewGuid()).WithDescription(Guid.NewGuid().ToString()).Build(),
+                new TaskItemBuilder().WithId(Guid.NewGuid()).WithDescription(Guid.NewGuid().ToString()).Build(),
+                new TaskItemBuilder().WithId(Guid.NewGuid()).WithDescription(Guid.NewGuid().ToString()).Build(),
+                new TaskItemBuilder().WithId(Guid.NewGuid()).WithDescription(Guid.NewGuid().ToString()).Build(),
+                new TaskItemBuilder().WithId(Guid.NewGuid()).WithDescription(Guid.NewGuid().ToString()).Build(),
+            };
+        }
+
+        private PostTaskItemModel CreateDefaultPostTaskItemModel()
+        {
+            return new PostTaskItemModelBuilder()
+                .WithDueDate(DateTime.Now.AddDays(1))
+                .WithStartDate(DateTime.Now.AddDays(-1))
+                .WithRepeatingIntervalDays(0)
+                .WithDescription(new Guid().ToString())
+                .WithTaskTitle(new Guid().ToString())
+                .Build();
+        }
+
+        private TaskItem CreateDefaultTaskItem()
+        {
+            return new TaskItemBuilder()
+                .WithId(new Guid())
+                .WithDueDate(DateTime.Now.AddDays(1))
+                .WithStartDate(DateTime.Now.AddDays(-1))
+                .WithRepeatingIntervalDays(0)
+                .WithDescription(new Guid().ToString())
+                .WithTaskTitle(new Guid().ToString())
+                .Build();
+        }
+    }
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[27,9,27,10,1],[28,13,28,57,1],[29,13,29,47,1],[31,13,33,37,1],[34,9,34,10,1],[38,9,38,10,1],[40,13,40,76,1],[41,13,41,74,1],[44,13,44,66,1],[48,13,48,36,1],[49,13,49,54,1],[50,13,50,36,1],[52,13,52,47,1],[53,13,53,64,1],[54,13,54,63,1],[55,9,55,10,1],[59,9,59,10,1],[61,13,61,86,1],[62,13,62,91,1],[65,13,65,81,1],[69,13,69,36,1],[70,13,70,47,1],[71,13,71,36,1],[72,13,72,47,1],[73,13,73,76,1],[74,13,74,63,1],[75,9,75,10,1],[79,9,79,10,1],[81,13,81,53,1],[82,13,82,67,1],[83,13,83,90,1],[86,13,86,83,1],[89,13,89,36,1],[90,13,90,61,1],[91,13,91,36,1],[92,13,92,55,1],[93,13,93,72,1],[94,13,94,63,1],[95,9,95,10,1],[99,9,99,10,1],[101,13,101,58,1],[102,13,102,52,1],[103,13,103,78,1],[104,13,104,68,1],[105,13,105,49,1],[108,13,108,72,1],[111,13,111,36,1],[112,13,112,51,1],[113,13,113,36,1],[114,13,114,47,1],[115,13,115,73,1],[116,13,116,69,1],[117,13,117,62,1],[118,9,118,10,1],[122,9,122,10,1],[124,13,124,58,1],[125,13,125,59,1],[126,13,126,116,1],[127,13,127,60,1],[128,13,128,68,1],[129,13,129,49,1],[132,13,132,80,1],[135,13,135,36,1],[136,13,136,61,1],[137,13,137,36,1],[138,13,138,55,1],[139,13,139,74,1],[140,13,140,82,1],[141,13,141,63,1],[142,9,142,10,1],[146,9,146,10,1],[148,13,148,58,1],[149,13,149,60,1],[150,13,150,92,1],[151,13,151,49,1],[154,13,154,74,1],[157,13,157,36,1],[158,13,158,73,1],[159,13,159,81,1],[160,13,160,63,1],[161,9,161,10,1],[165,9,165,10,1],[167,13,167,58,1],[168,13,168,48,1],[169,13,169,37,1],[170,13,170,74,1],[171,13,171,132,1],[172,13,172,49,1],[175,13,175,81,1],[178,13,178,36,1],[179,13,179,73,1],[180,13,180,76,1],[181,13,181,63,1],[182,9,182,10,1],[186,9,186,10,1],[188,13,188,58,1],[189,13,189,48,1],[190,13,190,34,1],[191,13,191,66,1],[192,13,192,74,1],[193,13,193,115,1],[194,13,194,49,1],[197,13,197,85,1],[200,13,200,36,1],[201,13,201,61,1],[202,13,202,36,1],[203,13,203,55,1],[204,13,204,73,1],[205,13,205,76,1],[206,13,206,63,1],[207,9,207,10,1],[211,9,211,10,1],[213,13,213,58,1],[214,13,214,59,1],[215,13,215,116,1],[216,13,216,60,1],[217,13,217,89,1],[218,13,218,49,1],[221,13,221,97,1],[224,13,224,36,1],[225,13,225,61,1],[226,13,226,36,1],[227,13,227,55,1],[228,13,228,74,1],[229,13,229,103,1],[230,13,230,63,1],[231,9,231,10,1],[235,9,235,10,1],[237,13,237,58,1],[238,13,238,52,1],[239,13,239,78,1],[240,13,240,72,1],[241,13,241,49,1],[244,13,244,84,1],[247,13,247,36,1],[248,13,248,51,1],[249,13,249,36,1],[250,13,250,47,1],[251,13,251,73,1],[252,13,252,97,1],[253,13,253,62,1],[254,9,254,10,1],[258,9,258,10,1],[260,13,260,49,1],[261,13,261,80,1],[262,13,262,56,1],[263,13,263,49,1],[266,13,266,73,1],[269,13,269,36,1],[270,13,270,73,1],[271,13,271,69,1],[272,13,272,62,1],[273,9,273,10,1],[277,9,277,10,1],[279,13,279,49,1],[280,13,280,68,1],[281,13,281,86,1],[284,13,284,78,1],[287,13,287,36,1],[288,13,288,61,1],[289,13,289,55,1],[290,13,290,73,1],[291,13,291,70,1],[292,13,292,63,1],[293,9,293,10,1],[297,9,297,10,1],[299,13,299,49,1],[300,13,300,80,1],[301,13,301,56,1],[302,13,302,73,1],[305,13,305,74,1],[308,13,308,36,1],[309,13,309,73,1],[310,13,310,69,1],[311,13,311,62,1],[312,9,312,10,1],[317,9,317,10,1],[319,13,319,116,1],[320,13,320,50,1],[323,13,323,142,1],[325,13,325,36,1],[326,13,326,61,1],[328,13,328,36,1],[329,13,329,55,1],[331,13,331,101,1],[332,13,332,63,1],[333,9,333,10,1],[337,9,337,10,1],[339,13,339,51,1],[340,13,340,46,1],[341,13,341,148,1],[342,13,342,79,1],[345,13,345,113,1],[348,13,348,36,1],[349,13,349,61,1],[351,13,351,36,1],[352,13,352,55,1],[354,13,354,101,1],[355,13,355,63,1],[356,9,356,10,1],[361,9,361,10,1],[363,13,363,51,1],[364,13,364,102,1],[365,13,365,81,1],[366,13,366,132,1],[369,13,369,111,1],[372,13,372,36,1],[373,13,373,61,1],[375,13,375,36,1],[376,13,376,55,1],[378,13,378,100,1],[379,13,379,63,1],[380,9,380,10,1],[384,9,384,10,1],[386,13,386,51,1],[387,13,387,103,1],[388,13,388,85,1],[389,13,389,132,1],[392,13,392,111,1],[395,13,395,36,1],[396,13,396,61,1],[398,13,398,36,1],[399,13,399,55,1],[401,13,401,100,1],[402,13,402,63,1],[403,9,403,10,1],[407,9,407,10,1],[409,13,409,51,1],[410,13,410,103,1],[411,13,411,85,1],[412,13,412,135,1],[415,13,415,113,1],[418,13,418,36,1],[419,13,419,61,1],[420,13,420,36,1],[421,13,421,55,1],[423,13,423,100,1],[424,13,424,63,1],[425,9,425,10,1],[429,9,429,10,1],[432,13,432,136,1],[435,13,435,36,1],[436,13,436,101,1],[437,13,437,63,1],[438,9,438,10,1],[442,9,442,10,1],[444,13,444,51,1],[445,13,445,103,1],[446,13,446,82,1],[449,13,449,106,1],[452,13,452,36,1],[453,13,453,100,1],[454,13,454,62,1],[455,9,455,10,1],[459,9,459,10,1],[460,13,467,15,1],[468,9,468,10,1],[471,9,471,10,1],[472,13,478,26,1],[479,9,479,10,1],[482,9,482,10,1],[483,13,490,26,1],[491,9,491,10,1]]);
+    </script>
+  </body>
+</html>

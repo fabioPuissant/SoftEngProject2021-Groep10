@@ -1,0 +1,73 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1" GroupingSetting="Access">
+  <Class Name="VmsApi.Data.Models.AssignedTask">
+    <Position X="2.5" Y="4.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAADAAAAAAAAAAAAIAAAAAgAAIAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Models\AssignedTask.cs</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Property Name="TaskItem" />
+    </ShowAsAssociation>
+  </Class>
+  <Class Name="VmsApi.Data.Models.FoodPurchase">
+    <Position X="2.5" Y="1.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAACAAAAAAAAAAAAACAAAACAAAAAAAABAAAAAAAAAAA=</HashCode>
+      <FileName>Models\FoodPurchase.cs</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Property Name="PigGroup" />
+    </ShowAsAssociation>
+  </Class>
+  <Class Name="VmsApi.Data.Models.MeasurePoint">
+    <Position X="9.5" Y="2" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAACAAAAAAAAAAAAACAAAACAACAAAAABAAAAAAAAAAA=</HashCode>
+      <FileName>Models\MeasurePoint.cs</FileName>
+    </TypeIdentifier>
+    <ShowAsAssociation>
+      <Property Name="PigGroup" />
+    </ShowAsAssociation>
+  </Class>
+  <Class Name="VmsApi.Data.Models.PigGroup">
+    <Position X="6.25" Y="2" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAACAAAAAAAAAAACAAAAACQAAAAAAAAAAgAAAAAAAAA=</HashCode>
+      <FileName>Models\PigGroup.cs</FileName>
+    </TypeIdentifier>
+    <ShowAsCollectionAssociation>
+      <Property Name="FoodPurchases" />
+      <Property Name="MeasurePoints" />
+    </ShowAsCollectionAssociation>
+  </Class>
+  <Class Name="VmsApi.Data.Models.TaskItem">
+    <Position X="6.25" Y="4" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAECAAAAAABgACIAAAAgAAAAAAAAAAAAAAAAAEAAAAA=</HashCode>
+      <FileName>Models\TaskItem.cs</FileName>
+    </TypeIdentifier>
+    <ShowAsCollectionAssociation>
+      <Property Name="AssignedTasks" />
+    </ShowAsCollectionAssociation>
+  </Class>
+  <Class Name="VmsApi.Data.Models.User">
+    <Position X="12" Y="4.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAEAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAg=</HashCode>
+      <FileName>Models\User.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="VmsApi.Data.Utils.AppRole">
+    <Position X="9.5" Y="4.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAQAAAAAAAAQAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Utils\AppRole.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Microsoft.AspNetCore.Identity.IdentityUser" Collapsed="true">
+    <Position X="12" Y="2.5" Width="1.5" />
+    <TypeIdentifier />
+  </Class>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>

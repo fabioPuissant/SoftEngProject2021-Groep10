@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>C:\Users\fabio\uhasselt\SEM1\SOFTENG\inf-seng-20-21-team-projectgroep-10\code\VmsApi\VmsApi.Test\Controllers\MeasurePointControllerTests.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
+using Moq;
+using NUnit.Framework;
+using VmsApi.Controllers;
+using VmsApi.Data.Exceptions;
+using VmsApi.Data.Models;
+using VmsApi.Data.Repositories;
+using VmsApi.Mappers;
+using VmsApi.ViewModels;
+
+namespace VmsApi.Test.Controllers
+{
+    [TestFixture]
+    public class MeasurePointControllerTests
+    {
+        private MeasurePointController _sut;
+        private Mock&lt;IMappings&gt; _mappingsMock;
+        private Mock&lt;IMeasurePointRepo&gt; _repoMock;
+
+        [SetUp]
+        public void SetUp()
+        {
+            _mappingsMock = new Mock&lt;IMappings&gt;();
+            _repoMock = new Mock&lt;IMeasurePointRepo&gt;();
+            _sut = new MeasurePointController(_repoMock.Object, _mappingsMock.Object);
+        }
+        [Test]
+        public async Task GetAll_Request_Returns_BadRequest_When_Exception_Is_Thrown()
+        {
+            // Arrange
+            _repoMock.Setup(x =&gt; x.GetAll()).Throws(new Exception());
+
+            // Act
+            var result = await _sut.GetAll() as BadRequestResult;
+
+            // Assert 
+            Assert.NotNull(result);
+            _repoMock.Verify(x =&gt; x.GetAll(), Times.Once);
+        }
+
+        [Test]
+        public async Task GetAll_Returns_OKResult_With_List_Of_MeasurePoints_When_No_Exception()
+        {
+            // Arrange
+            var expected = CreateDefaultListOfMeasurePoints();
+            _repoMock.Setup(x =&gt; x.GetAll()).ReturnsAsync(expected);
+
+            // Act 
+            var result = await _sut.GetAll() as OkObjectResult;
+
+            // Assert 
+            Assert.NotNull(result);
+            var actual = result.Value;
+            Assert.NotNull(actual);
+            Assert.AreEqual(expected, actual);
+        }
+
+        [Test]
+        public async Task GetById_Should_Return_MeasurePoint_By_Id_If_Exists()
+        {
+            // Arrange
+            var expected = CreateDefaultMeasurePoint();
+            var idExpected = expected.Id;
+            _repoMock.Setup(x =&gt; x.GetById(idExpected)).ReturnsAsync(expected);
+
+            // Act
+            var result = await _sut.GetById(expected.Id) as OkObjectResult;
+            MeasurePoint actual;
+
+            // Assert
+            Assert.NotNull(result);
+            actual = result.Value as MeasurePoint;
+            Assert.NotNull(actual);
+            Assert.AreEqual(expected, actual);
+            _repoMock.Verify(x =&gt; x.GetById(expected.Id), Times.Once);
+        }
+
+        
+        [Test]
+        public async Task GetById_Should_Return_NotFound_When_No_MeasurePoint_Is_Found()
+        {
+            // Arrange
+            var item = CreateDefaultMeasurePoint();
+            var expected = $&quot;No MeasurePoint found with Id of {item.Id}&quot;;
+            _repoMock.Setup(x =&gt; x.GetById(It.IsAny&lt;Guid&gt;())).ReturnsAsync(() =&gt; null);
+
+            // Act
+            var result = await _sut.GetById(item.Id) as NotFoundObjectResult;
+
+            // Assert
+            Assert.NotNull(result);
+            var actual = result.Value as ErrorMessageResult;
+            Assert.NotNull(actual);
+            Assert.AreEqual(expected, actual.Message);
+            _repoMock.Verify(x =&gt; x.GetById(item.Id), Times.Once);
+
+        }
+        
+        [Test]
+        public async Task GetById_Should_Return_BadRequest_When_Exception_Is_Thrown_While_Searching_For_MeasurePoint_With_Id()
+        {
+            // Arrange
+            var item = CreateDefaultMeasurePoint();
+            _repoMock.Setup(x =&gt; x.GetById(It.IsAny&lt;Guid&gt;())).ThrowsAsync(new Exception());
+
+            // Act
+            var result = await _sut.GetById(item.Id) as BadRequestResult;
+
+            // Assert
+            Assert.NotNull(result);
+            _repoMock.Verify(x =&gt; x.GetById(item.Id), Times.Once);
+        }
+
+
+        [Test]
+        public async Task Create_Should_Return_OkObjectResult_When_Adding_New_MeasurePoint_To_Database_Is_Successful()
+        {
+            // Arrange
+            var model = CreateDefaultModel();
+            var expected = CreateDefaultMeasurePoint();
+            _mappingsMock.Setup(x =&gt; x.MapToMeasurePoint(model)).Returns(expected);
+            _repoMock.Setup(x =&gt; x.Create(model.GroupNumber, expected)).ReturnsAsync(expected);
+
+            // Act
+            var result = await _sut.Create(model) as OkObjectResult;
+
+            // Assert
+            Assert.NotNull(result);
+            var actual = result.Value as MeasurePoint;
+            Assert.NotNull(actual);
+            Assert.AreEqual(expected, actual);
+            _mappingsMock.Verify(x =&gt; x.MapToMeasurePoint(model), Times.Once);
+            _repoMock.Verify(x =&gt; x.Create(model.GroupNumber, expected), Times.Once);
+        }
+
+        [Test]
+        public async Task Create_Should_Return_BadRequest_Result_When_ModelState_Is_Invalid_Of_PostMapperMeasurePoint()
+        {
+            // Arrange
+            var model = CreateDefaultModel();
+            string expected = &quot;PostMapperMeasurePoint model is invalid&quot;;
+            _sut.ModelState.AddModelError(&quot;System Under Test&quot;, &quot;System Under Test ModelState Generated Exception&quot;);
+
+            // Act
+            var result = await _sut.Create(model) as BadRequestObjectResult;
+
+            // Assert
+            Assert.NotNull(result);
+            var actual = result.Value as ErrorMessageResult;
+            Assert.NotNull(actual);
+            Assert.AreEqual(expected, actual.Message);
+            _mappingsMock.Verify(x =&gt; x.MapToMeasurePoint(model), Times.Never);
+            _repoMock.Verify(x =&gt; x.Create(model.GroupNumber, It.IsAny&lt;MeasurePoint&gt;()), Times.Never);
+        }
+
+        [Test]
+        public async Task Create_Should_Return_BadRequest_When_Exception_Thrown_While_Adding_New_MeasurePoint()
+        {
+            // Arrange
+            var model = CreateDefaultModel();
+            _mappingsMock.Setup(x =&gt; x.MapToMeasurePoint(model));
+            _repoMock.Setup(x =&gt; x.Create(model.GroupNumber, It.IsAny&lt;MeasurePoint&gt;())).Throws(new Exception());
+
+            // Act
+            var result = await _sut.Create(model) as BadRequestResult;
+
+            // Assert
+            Assert.NotNull(result);
+            _mappingsMock.Verify(x =&gt; x.MapToMeasurePoint(model), Times.Once);
+            _repoMock.Verify(x =&gt; x.Create(model.GroupNumber, It.IsAny&lt;MeasurePoint&gt;()), Times.Once);
+        }
+
+
+        [Test]
+        public async Task Update_Should_Return_BadRequest_When_Exception_Is_Thrown_While_Updating_MeasurePoint()
+        {
+            // Arrange
+            var model = CreateDefaultMeasurePoint();
+            var testId = new Guid();
+
+            _repoMock.Setup(x =&gt; x.Update(It.IsAny&lt;Guid&gt;(), model)).Throws(new Exception());
+
+            // Act
+            var result = await _sut.Update(testId, model) as BadRequestResult;
+
+            // Assert
+            Assert.NotNull(result);
+            _repoMock.Verify(x =&gt; x.Update(testId, model), Times.Once);
+        }
+
+
+        [Test]
+        public async Task Update_Should_Return_NotFound_When_IdException_Thrown_While_Updating_MeasurePoint()
+        {
+            // Arrange
+            var model = CreateDefaultMeasurePoint();
+            var testId = model.Id;
+            var expected = $&quot;No MeasurePoint found with id of {testId}&quot;;
+
+            _repoMock.Setup(x =&gt; x.Update(model.Id, model))
+                .ThrowsAsync(new IdException($&quot;No MeasurePoint found with id of {testId}&quot;));
+
+            // Act
+            var result = await _sut.Update(testId, model) as NotFoundObjectResult;
+
+            // Assert
+            Assert.NotNull(result);
+            var actual = result.Value as ErrorMessageResult;
+            Assert.NotNull(actual);
+            Assert.AreEqual(expected, actual.Message);
+            _repoMock.Verify(x =&gt; x.Update(testId, model), Times.Once);
+        }
+
+        [Test]
+        public async Task Update_Should_Return_BadRequest_Result_When_ModelState_Is_Invalid_While_Updating_MeasurePoint()
+        {
+            // Arrange
+            var model = CreateDefaultMeasurePoint();
+            string expected = &quot;Invalid MeasurePoint model&quot;;
+            _sut.ModelState.AddModelError(&quot;System Under Test&quot;, &quot;System Under Test ModelState Generated Exception&quot;);
+
+
+            // Act
+            var result = await _sut.Update(It.IsAny&lt;Guid&gt;(), model) as BadRequestObjectResult;
+
+            // Assert
+            Assert.NotNull(result);
+            var actual = result.Value as ErrorMessageResult;
+            Assert.NotNull(actual);
+            Assert.AreEqual(expected, actual.Message);
+            _repoMock.Verify(x =&gt; x.Update(It.IsAny&lt;Guid&gt;(), It.IsAny&lt;MeasurePoint&gt;()), Times.Never);
+        }
+
+
+        [Test]
+        public async Task Update_Should_Return_OkObjectResult_When_MeasurePoint_Correctly_Updated()
+        {
+            // Arrange
+            var model = CreateDefaultMeasurePoint();
+            var expected = CreateDefaultMeasurePoint();
+            _repoMock.Setup(x =&gt; x.Update(model.Id, model)).ReturnsAsync(expected);
+
+            // Act
+            var result = await _sut.Update(model.Id, model) as OkObjectResult;
+
+            // Assert
+            Assert.NotNull(result);
+            var actual = result.Value as MeasurePoint;
+            Assert.NotNull(actual);
+            Assert.AreEqual(expected, actual);
+            _repoMock.Verify(x =&gt; x.Update(model.Id, model), Times.Once);
+        }
+
+
+        private MeasurePoint CreateDefaultMeasurePoint(Guid id = new Guid())
+        {
+            return new MeasurePoint()
+            {
+                Id = id,
+                PigGroup = new PigGroup(){Id = new Guid()}
+            };
+        }
+
+        private List&lt;MeasurePoint&gt; CreateDefaultListOfMeasurePoints()
+        {
+            return new List&lt;MeasurePoint&gt;
+            {
+                new MeasurePoint(),
+                new MeasurePoint(),
+                new MeasurePoint()
+            };
+        }
+
+        private PostMapperMeasurePoint CreateDefaultModel()
+        {
+            return new PostMapperMeasurePoint
+            {
+                GroupNumber = new Guid().ToString()
+            };
+        }
+
+        // $&quot;No MeasurePoint found with id of {id}&quot;
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[25,9,25,10,1],[26,13,26,51,1],[27,13,27,55,1],[28,13,28,87,1],[29,9,29,10,1],[32,9,32,10,1],[34,13,34,70,1],[37,13,37,66,1],[40,13,40,36,1],[41,13,41,59,1],[42,9,42,10,1],[46,9,46,10,1],[48,13,48,63,1],[49,13,49,69,1],[52,13,52,64,1],[55,13,55,36,1],[56,13,56,39,1],[57,13,57,36,1],[58,13,58,47,1],[59,9,59,10,1],[63,9,63,10,1],[65,13,65,56,1],[66,13,66,42,1],[67,13,67,80,1],[70,13,70,76,1],[74,13,74,36,1],[75,13,75,51,1],[76,13,76,36,1],[77,13,77,47,1],[78,13,78,71,1],[79,9,79,10,1],[84,9,84,10,1],[86,13,86,52,1],[87,13,87,74,1],[88,13,88,88,1],[88,82,88,86,1],[91,13,91,78,1],[94,13,94,36,1],[95,13,95,61,1],[96,13,96,36,1],[97,13,97,55,1],[98,13,98,67,1],[100,9,100,10,1],[104,9,104,10,1],[106,13,106,52,1],[107,13,107,92,1],[110,13,110,74,1],[113,13,113,36,1],[114,13,114,67,1],[115,9,115,10,1],[120,9,120,10,1],[122,13,122,46,1],[123,13,123,56,1],[124,13,124,84,1],[125,13,125,96,1],[128,13,128,69,1],[131,13,131,36,1],[132,13,132,55,1],[133,13,133,36,1],[134,13,134,47,1],[135,13,135,79,1],[136,13,136,86,1],[137,9,137,10,1],[141,9,141,10,1],[143,13,143,46,1],[144,13,144,73,1],[145,13,145,116,1],[148,13,148,77,1],[151,13,151,36,1],[152,13,152,61,1],[153,13,153,36,1],[154,13,154,55,1],[155,13,155,80,1],[156,13,156,103,1],[157,9,157,10,1],[161,9,161,10,1],[163,13,163,46,1],[164,13,164,66,1],[165,13,165,113,1],[168,13,168,71,1],[171,13,171,36,1],[172,13,172,79,1],[173,13,173,102,1],[174,9,174,10,1],[179,9,179,10,1],[181,13,181,53,1],[182,13,182,37,1],[184,13,184,93,1],[187,13,187,79,1],[190,13,190,36,1],[191,13,191,72,1],[192,9,192,10,1],[197,9,197,10,1],[199,13,199,53,1],[200,13,200,35,1],[201,13,201,73,1],[203,13,204,93,1],[207,13,207,83,1],[210,13,210,36,1],[211,13,211,61,1],[212,13,212,36,1],[213,13,213,55,1],[214,13,214,72,1],[215,9,215,10,1],[219,9,219,10,1],[221,13,221,53,1],[222,13,222,60,1],[223,13,223,116,1],[227,13,227,95,1],[230,13,230,36,1],[231,13,231,61,1],[232,13,232,36,1],[233,13,233,55,1],[234,13,234,102,1],[235,9,235,10,1],[240,9,240,10,1],[242,13,242,53,1],[243,13,243,56,1],[244,13,244,84,1],[247,13,247,79,1],[250,13,250,36,1],[251,13,251,55,1],[252,13,252,36,1],[253,13,253,47,1],[254,13,254,74,1],[255,9,255,10,1],[259,9,259,10,1],[260,13,264,15,1],[265,9,265,10,1],[268,9,268,10,1],[269,13,274,15,1],[275,9,275,10,1],[278,9,278,10,1],[279,13,282,15,1],[283,9,283,10,1]]);
+    </script>
+  </body>
+</html>

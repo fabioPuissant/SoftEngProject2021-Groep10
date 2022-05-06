@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>C:\Users\fabio\uhasselt\SEM1\SOFTENG\inf-seng-20-21-team-projectgroep-10\code\VmsApi\VmsApi.Data\Repositories\FoodPurchaseRepo.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using VmsApi.Data.DataDbContext;
+using VmsApi.Data.Exceptions;
+using VmsApi.Data.Models;
+
+namespace VmsApi.Data.Repositories
+{
+    public class FoodPurchaseRepo : IFoodPurchasesRepo
+    {
+        private readonly VmsDbContext _context;
+
+        public FoodPurchaseRepo(VmsDbContext context)
+        {
+            _context = context;
+        }
+
+        public async Task&lt;List&lt;FoodPurchase&gt;&gt; GetAll()
+        {
+            return await _context.FoodPurchases.ToListAsync();
+        }
+
+        public async Task&lt;FoodPurchase&gt; GetByIdAsync(Guid id)
+        {
+            return await _context.FoodPurchases
+                .Include(f =&gt; f.PigGroup)
+                .FirstOrDefaultAsync(foodPurchase =&gt; foodPurchase.Id == id);
+        }
+
+        public async Task&lt;FoodPurchase&gt; CreateAsync(string groupNumber, FoodPurchase purchase)
+        {
+            var group = await _context.PigGroups.Include(g =&gt; g.FoodPurchases).SingleAsync(pigGroup =&gt; pigGroup.GroupNumber == groupNumber);
+            group.FoodPurchases.Add(purchase);
+            await _context.SaveChangesAsync();
+
+            return purchase;
+        }
+
+        public async Task&lt;FoodPurchase&gt; UpdateAsync(Guid id, FoodPurchase updatedItem)
+        {
+            var found = await GetByIdAsync(id);
+            if (found == null)
+            {
+                throw new IdException($&quot;No FoodPurchaseFound with id {id}&quot;);
+            }
+
+            updatedItem.Id = id;
+            await Task.Run(() =&gt; _context.Entry(updatedItem).State = EntityState.Modified);
+            await _context.SaveChangesAsync();
+
+            return updatedItem;
+        }
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[15,9,15,54,0],[16,9,16,10,0],[17,13,17,32,0],[18,9,18,10,0],[21,9,21,10,0],[22,13,22,63,0],[23,9,23,10,0],[26,9,26,10,0],[27,13,29,77,0],[30,9,30,10,0],[33,9,33,10,0],[34,13,34,141,0],[35,13,35,47,0],[36,13,36,47,0],[38,13,38,29,0],[39,9,39,10,0],[42,9,42,10,0],[43,13,43,48,0],[44,13,44,31,0],[45,13,45,14,0],[46,17,46,77,0],[49,13,49,33,0],[50,13,50,92,0],[50,34,50,90,0],[51,13,51,47,0],[53,13,53,32,0],[54,9,54,10,0]]);
+    </script>
+  </body>
+</html>

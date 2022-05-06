@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>C:\Users\fabio\uhasselt\SEM1\SOFTENG\inf-seng-20-21-team-projectgroep-10\code\VmsApi\VmsApi.Test\Controllers\AccountsControllerTests.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using AutoMapper;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Moq;
+using NUnit.Framework;
+using VmsApi.Controllers;
+using VmsApi.Data.DataDbContext;
+using VmsApi.Data.Models;
+using VmsApi.Data.Utils;
+using VmsApi.Services;
+using VmsApi.Test.StubClasses;
+using VmsApi.Test.TestingUtils;
+using VmsApi.ViewModels;
+using VmsApi.ViewModels.GetModels;
+using VmsApi.ViewModels.PostModels;
+using SignInResult = Microsoft.AspNetCore.Identity.SignInResult;
+
+namespace VmsApi.Test.Controllers
+{
+    [TestFixture]
+    public class AccountsControllerTests
+    {
+        private Mock&lt;IMapper&gt; _mapperMock;
+        private Mock&lt;FakeUserManager&gt; _userManagerMock;
+        private Mock&lt;FakeSignInManager&gt; _signInManagerMock;
+        private Mock&lt;ITokenGenerator&gt; _tokenGeneratorMock;
+        private AccountsController _sut; // sut  ==&gt; System Under Test!
+
+        [SetUp]
+        public void SetUp()
+        {
+            _mapperMock = new Mock&lt;IMapper&gt;();
+            SetUpUserMangerMock();
+            _tokenGeneratorMock = new Mock&lt;ITokenGenerator&gt;();
+            _sut = new AccountsController(_mapperMock.Object, _userManagerMock.Object, _tokenGeneratorMock.Object);
+        }
+
+        [Test]
+        public async Task Should_Return__BadRequest_When__RegisterModel_Not_Valid()
+        {
+            // Arrange
+            var mockModel = new UserRegistrationModel
+            {
+                Password = &quot;123456&quot;
+            };
+            _mapperMock.Setup(x =&gt; x.Map&lt;User&gt;(It.IsAny&lt;UserRegistrationModel&gt;())).Returns(new User());
+            _userManagerMock.Setup(x =&gt; x.CreateAsync(It.IsAny&lt;User&gt;(), It.IsAny&lt;string&gt;()))
+                .ReturnsAsync(IdentityResult.Failed()); //Mock the result 
+
+            // Act
+            var result = await _sut.Register(mockModel) as BadRequestObjectResult;
+
+            // Assert
+            Assert.NotNull(result);
+            _mapperMock.Verify(x =&gt; x.Map&lt;User&gt;(It.IsAny&lt;UserRegistrationModel&gt;()), Times.Once());
+        }
+
+
+        [Test]
+        public async Task Should_Not_Register_When_Model_Is_Valid()
+        {
+            //Arrange
+            var mockUser = GetMockUser();
+            var mockModel = GetMockRegistrationModel();
+
+            _mapperMock.Setup(x =&gt; x.Map&lt;User&gt;(It.IsAny&lt;UserRegistrationModel&gt;())).Returns(mockUser);
+            _userManagerMock.Setup(x =&gt; x.CreateAsync(It.IsAny&lt;User&gt;(), It.IsAny&lt;string&gt;()))
+                .ReturnsAsync(IdentityResult.Success); //Mock the result 
+
+            //Act
+            var result = await _sut.Register(mockModel) as StatusCodeResult;
+
+            //Assert
+            Assert.NotNull(result);
+            _mapperMock.Verify(x =&gt; x.Map&lt;User&gt;(mockModel), Times.Once());
+            _userManagerMock.Verify(x =&gt; x.CreateAsync(mockUser, mockModel.Password), Times.Once());
+            Assert.That(result.StatusCode, Is.EqualTo(201));
+        }
+
+        [Test]
+        public async Task Should_Login_When_Credentials_Correct()
+        {
+            // Arrange
+            var registerModel = GetMockRegistrationModel();
+            var userLoginModel = new UserLoginModel
+            {
+                Email = registerModel.Email,
+                Password = registerModel.Password
+            };
+            var mockToken = new LoginJwtTokenDto(&quot;6275956C-F0B5-43EC-8127-A781FFE6E6DB&quot;);
+            var savedAccount = GetMockUser();
+
+            _userManagerMock.Setup(x =&gt; x.FindByEmailAsync(It.IsAny&lt;string&gt;()))
+                .ReturnsAsync(savedAccount);
+            _userManagerMock.Setup(x =&gt; x.CheckPasswordAsync(It.IsAny&lt;User&gt;(), It.IsAny&lt;string&gt;()))
+                .ReturnsAsync(true);
+            _tokenGeneratorMock.Setup(x =&gt; x.GetTokenAsync(It.IsAny&lt;User&gt;())).ReturnsAsync(mockToken);
+
+
+            // Act
+            var result = await _sut.LoginEndpoint(userLoginModel) as OkObjectResult;
+
+
+            // Assert
+            Assert.NotNull(result);
+            _userManagerMock.Verify(x =&gt; x.FindByEmailAsync(userLoginModel.Email), Times.Once());
+            _userManagerMock.Verify(x =&gt; x.CheckPasswordAsync(savedAccount, userLoginModel.Password), Times.Once());
+            _tokenGeneratorMock.Verify(x =&gt; x.GetTokenAsync(savedAccount), Times.Once);
+
+            var value = result.Value as LoginJwtTokenDto;
+            Assert.NotNull(value);
+            Assert.AreEqual(value.JwtBearerToken, mockToken.JwtBearerToken);
+        }
+
+        [Test]
+        public async Task Should_Return_BadRequest_When_Credentials_Incorrect()
+        {
+            // Arrange
+            var registerModel = GetMockRegistrationModel();
+            var userLoginModel = new UserLoginModel
+            {
+                Email = registerModel.Email,
+                Password = registerModel.Password
+            };
+            var savedAccount = GetMockUser();
+
+            _userManagerMock.Setup(x =&gt; x.FindByEmailAsync(It.IsAny&lt;string&gt;()))
+                .ReturnsAsync(savedAccount);
+            _userManagerMock.Setup(x =&gt; x.CheckPasswordAsync(It.IsAny&lt;User&gt;(), It.IsAny&lt;string&gt;()))
+                .ReturnsAsync(false);
+
+            // Act
+            var result = await _sut.LoginEndpoint(userLoginModel) as UnauthorizedObjectResult;
+
+
+            // Assert
+            Assert.NotNull(result);
+            _userManagerMock.Verify(x =&gt; x.FindByEmailAsync(userLoginModel.Email), Times.Once());
+            _userManagerMock.Verify(x =&gt; x.CheckPasswordAsync(savedAccount, userLoginModel.Password), Times.Once());
+            Assert.That(result.StatusCode, Is.EqualTo(401));
+            var value = result.Value;
+            Assert.AreEqual(&quot;Invalid Authentication&quot;, value);
+        }
+
+        [Test]
+        public async Task Should_Delete_User_When_UserID_Is_Found()
+        {
+            // Arrange
+            var userid = Guid.NewGuid();
+            var defaultUser = new User();
+            _userManagerMock.Setup(x =&gt; x.FindByIdAsync(userid.ToString())).ReturnsAsync(defaultUser);
+            _userManagerMock.Setup(x =&gt; x.DeleteAsync(defaultUser)).ReturnsAsync(new IdentityResult());
+
+            // Act
+            var result = await _sut.DeleteUserEndpoint(userid: userid) as NoContentResult;
+
+            // Assert
+            Assert.NotNull(result);
+            _userManagerMock.Verify(x =&gt; x.FindByIdAsync(userid.ToString()), Times.Once);
+            _userManagerMock.Verify(x =&gt; x.DeleteAsync(defaultUser), Times.Once);
+        }
+
+        [Test]
+        public async Task Should_Return_404_NotFound_When_No_User_With_Given_Id_Was_Found()
+        {
+            // Arrange
+            var userid = Guid.NewGuid();
+            _userManagerMock.Setup(x =&gt; x.FindByIdAsync(userid.ToString())).ReturnsAsync(() =&gt; null);
+
+            // Act
+            var result = await _sut.DeleteUserEndpoint(userid: userid) as NotFoundObjectResult;
+
+            // Assert
+            Assert.NotNull(result);
+            _userManagerMock.Verify(x =&gt; x.FindByIdAsync(userid.ToString()), Times.Once);
+            _userManagerMock.Verify(x =&gt; x.DeleteAsync(It.IsAny&lt;User&gt;()), Times.Never);
+            var obj = result.Value as ErrorMessageResult;
+            Assert.NotNull(obj);
+            Assert.AreEqual($&quot;No user found with {userid}&quot;, obj.Message);
+            Assert.AreEqual(&quot;Delete/{userid:guid}&quot;, obj.URL);
+        }
+
+
+        [Test]
+        public async Task Should_Return_400_BadRequest_When_Something_In_Method_Throws_An_Exception_When_Deleting_User()
+        {
+            // Arrange
+            var userid = Guid.NewGuid();
+            var defaultUser = new User();
+            _userManagerMock.Setup(x =&gt; x.FindByIdAsync(userid.ToString())).ReturnsAsync(defaultUser);
+            _userManagerMock.Setup(x =&gt; x.DeleteAsync(It.IsAny&lt;User&gt;())).Throws(new Exception());
+
+            // Act
+            var result = await _sut.DeleteUserEndpoint(userid: userid) as BadRequestResult;
+
+            // Assert
+            Assert.NotNull(result);
+            _userManagerMock.Verify(x =&gt; x.FindByIdAsync(userid.ToString()), Times.Once);
+            _userManagerMock.Verify(x =&gt; x.DeleteAsync(defaultUser), Times.Once);
+        }
+
+        [Test]
+        [TestCase(&quot;Manager&quot;)]
+        [TestCase(&quot;Administrator&quot;)]
+        public void Deleting_User_Should_Succeed_When_Valid_Authorized_Role(string role)
+        {
+            // Assert
+            var isTrue = AuthorizationAttributeTestHelper.IsAuthorized(
+                _sut,
+                &quot;DeleteUserEndpoint&quot;,
+                null,
+                new[] {role}, null);
+            Assert.True(isTrue);
+        }
+
+        [Test]
+        [TestCase(&quot;Weger&quot;)]
+        [TestCase(&quot;Werknemer&quot;)]
+        public void Deleting_User_Should_Fail_When_Valid_Authorized_Role(string role)
+        {
+            // Assert
+            var isTrue = AuthorizationAttributeTestHelper.IsAuthorized(
+                _sut,
+                &quot;DeleteUserEndpoint&quot;,
+                null,
+                new[] {role}, null);
+            Assert.False(isTrue);
+        }
+
+        [Test]
+        public void AssignRolesToUser_Should_Succeed_When_Administrator_Calls_Action()
+        {
+            // Assert
+            var isTrue = AuthorizationAttributeTestHelper.IsAuthorized(
+                _sut,
+                &quot;AssignRolesToUser&quot;,
+                null,
+                new[] {&quot;Administrator&quot;}, null);
+            Assert.True(isTrue);
+        }
+
+        [Test]
+        public void AssignRolesToUser_Should_Fail_When_Not_An_Administrator_Calls_Action()
+        {
+            foreach (var value in AppRolesDict.ApplicationRoles.Values)
+            {
+                if (value.Name != &quot;Administrator&quot;)
+                {
+                    // Assert
+                    var isTrue = AuthorizationAttributeTestHelper.IsAuthorized(
+                        _sut,
+                        &quot;AssignRolesToUser&quot;,
+                        null,
+                        new[] {value.Name}, null);
+                    Assert.False(isTrue);
+                }
+            }
+        }
+
+        [Test]
+        public async Task AssignRolesToUser_Should_Return_BadRequestObjectResult_When_ModelState_Invalid()
+        {
+            // Assert
+            string expected = &quot;Model state of sent body is invalid&quot;;
+            _sut.ModelState.AddModelError(&quot;System Under Test&quot;, &quot;System Under Test ModelState Generated Exception&quot;);
+
+            // Act
+            var result =
+                await _sut.AssignRolesToUser(It.IsAny&lt;Guid&gt;(), It.IsAny&lt;ChangeRolesModel&gt;()) as BadRequestObjectResult;
+
+            // Assert
+            Assert.NotNull(result);
+            var actual = result.Value as ErrorMessageResult;
+            Assert.NotNull(actual);
+            Assert.AreEqual(expected, actual.Message);
+        }
+
+        [Test]
+        public async Task AssignRolesToUser_Should_Return_NotFoundObjectResult_When_No_Matching_User_wasFound()
+        {
+            // Arrange
+            //Guid testId = new Guid();
+            //_userManagerMock.Setup(x =&gt; x.Users).Returns(new List&lt;User&gt;().AsQueryable());
+            //_userManagerMock.Setup(x =&gt; x.Users.FirstOrDefaultAsync(x=&gt; x.Id == testId.ToString())).ReturnsAsync(()=&gt;null);
+            //string expected = $&quot;No User found with id of {testId}&quot;;
+
+            // Act
+            //var result = await _sut.AssignRolesToUser(testId, It.IsAny&lt;ChangeRolesModel&gt;()) as NotFoundObjectResult;
+
+            // Assert
+            //Assert.NotNull(result);
+            //var actual = result.Value as ErrorMessageResult;
+            //Assert.NotNull(actual);
+            //Assert.AreEqual(expected, actual.Message);
+        }
+
+        [Test]
+        public async Task GetAll_Should_Return_OkResult_With_All_Users()
+        {
+            /*
+            // Arrange
+            var expected = _userManagerMock.Object.Users;
+            _userManagerMock.Setup(x =&gt; x.Users);
+
+            // Act 
+            var result = await _sut.GetAllAsync() as OkObjectResult;
+
+            // Assert
+            Assert.NotNull(result);
+            var actual = result.Value as List&lt;User&gt;;
+
+            Assert.NotNull(actual);
+            Assert.AreEqual(expected:expected, actual);
+            _userManagerMock.Verify(x=&gt; x.Users, Times.Once);
+            */
+        }
+
+        [Test]
+        public async Task GetAll_Should_Return_BadRequestResult_When_Exception_Has_Been_Thrown()
+        {
+            // Arrange
+            _userManagerMock.Setup(x =&gt; x.Users).Throws(new Exception());
+
+            // Act 
+            var result = await _sut.GetAllAsync() as BadRequestResult;
+
+            // Assert
+            Assert.NotNull(result);
+            _userManagerMock.Verify(x =&gt; x.Users, Times.Once);
+        }
+        private void SetUpUserMangerMock()
+        {
+            var options = new DbContextOptionsBuilder&lt;VmsDbContext&gt;()
+                .UseInternalServiceProvider(null)
+                .Options;
+
+            var dbContext = new VmsDbContext(options);
+
+            var users = new List&lt;User&gt;
+            {
+                new User
+                {
+                    UserName = &quot;Test&quot;,
+                    Id = Guid.NewGuid().ToString(),
+                    Email = &quot;test@test.it&quot;
+                }
+            }.AsQueryable();
+
+            var userManagerMock = new Mock&lt;FakeUserManager&gt;();
+            var signInManagerMock = new Mock&lt;FakeSignInManager&gt;();
+
+            // Default behaviors
+            userManagerMock.Setup(x =&gt; x.Users)
+                .Returns(users);
+            userManagerMock.Setup(x =&gt; x.DeleteAsync(It.IsAny&lt;User&gt;()))
+                .ReturnsAsync(IdentityResult.Success);
+            userManagerMock.Setup(x =&gt; x.CreateAsync(It.IsAny&lt;User&gt;(), It.IsAny&lt;string&gt;()))
+                .ReturnsAsync(IdentityResult.Success);
+            userManagerMock.Setup(x =&gt; x.UpdateAsync(It.IsAny&lt;User&gt;()))
+                .ReturnsAsync(IdentityResult.Success);
+            userManagerMock.Setup(x =&gt;
+                    x.ChangeEmailAsync(It.IsAny&lt;User&gt;(), It.IsAny&lt;string&gt;(), It.IsAny&lt;string&gt;()))
+                .ReturnsAsync(IdentityResult.Success);
+
+
+            // Default behaviors signInManger
+            signInManagerMock.Setup(
+                    x =&gt; x.PasswordSignInAsync(It.IsAny&lt;User&gt;(), It.IsAny&lt;string&gt;(), It.IsAny&lt;bool&gt;(),
+                        It.IsAny&lt;bool&gt;()))
+                .ReturnsAsync((SignInResult) SignInResult.Success);
+
+            _userManagerMock = userManagerMock;
+            _signInManagerMock = signInManagerMock;
+        }
+
+        private UserRegistrationModel GetMockRegistrationModel()
+        {
+            return new UserRegistrationModel
+            {
+                Email = &quot;example@mail.com&quot;,
+                ConfirmPassword = &quot;abcd&quot;,
+                Password = &quot;abcd&quot;,
+                FirstName = &quot;Example&quot;,
+                LastName = &quot;Unittester&quot;,
+                Role = &quot;Administrator&quot;
+            };
+        }
+
+        private User GetMockUser()
+        {
+            var mockRegisterUser = GetMockRegistrationModel();
+            return new User
+            {
+                Email = mockRegisterUser.Email,
+                UserName = mockRegisterUser.Email,
+                FirstName = mockRegisterUser.FirstName,
+                LastName = mockRegisterUser.LastName,
+                Id = &quot;a1&quot;,
+            };
+        }
+    }
+}
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[36,9,36,10,1],[37,13,37,47,1],[38,13,38,35,1],[39,13,39,63,1],[40,13,40,116,1],[41,9,41,10,1],[45,9,45,10,1],[47,13,50,15,1],[51,13,51,104,1],[52,13,53,56,1],[56,13,56,83,1],[59,13,59,36,1],[60,13,60,99,1],[61,9,61,10,1],[66,9,66,10,1],[68,13,68,42,1],[69,13,69,56,1],[71,13,71,102,1],[72,13,73,55,1],[76,13,76,77,1],[79,13,79,36,1],[80,13,80,75,1],[81,13,81,101,1],[82,13,82,61,1],[83,9,83,10,1],[87,9,87,10,1],[89,13,89,60,1],[90,13,94,15,1],[95,13,95,90,1],[96,13,96,46,1],[98,13,99,45,1],[100,13,101,37,1],[102,13,102,103,1],[106,13,106,85,1],[110,13,110,36,1],[111,13,111,98,1],[112,13,112,117,1],[113,13,113,88,1],[115,13,115,58,1],[116,13,116,35,1],[117,13,117,77,1],[118,9,118,10,1],[122,9,122,10,1],[124,13,124,60,1],[125,13,129,15,1],[130,13,130,46,1],[132,13,133,45,1],[134,13,135,38,1],[138,13,138,95,1],[142,13,142,36,1],[143,13,143,98,1],[144,13,144,117,1],[145,13,145,61,1],[146,13,146,38,1],[147,13,147,62,1],[148,9,148,10,1],[152,9,152,10,1],[154,13,154,41,1],[155,13,155,42,1],[156,13,156,103,1],[157,13,157,104,1],[160,13,160,91,1],[163,13,163,36,1],[164,13,164,90,1],[165,13,165,82,1],[166,9,166,10,1],[170,9,170,10,1],[172,13,172,41,1],[173,13,173,102,1],[173,96,173,100,1],[176,13,176,96,1],[179,13,179,36,1],[180,13,180,90,1],[181,13,181,88,1],[182,13,182,58,1],[183,13,183,33,1],[184,13,184,74,1],[185,13,185,62,1],[186,9,186,10,1],[191,9,191,10,1],[193,13,193,41,1],[194,13,194,42,1],[195,13,195,103,1],[196,13,196,98,1],[199,13,199,92,1],[202,13,202,36,1],[203,13,203,90,1],[204,13,204,82,1],[205,9,205,10,1],[211,9,211,10,1],[213,13,217,37,1],[218,13,218,33,1],[219,9,219,10,1],[225,9,225,10,1],[227,13,231,37,1],[232,13,232,34,1],[233,9,233,10,1],[237,9,237,10,1],[239,13,243,48,1],[244,13,244,33,1],[245,9,245,10,1],[249,9,249,10,1],[250,13,250,20,1],[250,22,250,31,1],[250,32,250,34,1],[250,35,250,71,1],[251,13,251,14,1],[252,17,252,51,1],[253,17,253,18,1],[255,21,259,51,1],[260,21,260,42,1],[261,17,261,18,1],[262,13,262,14,1],[263,9,263,10,1],[267,9,267,10,1],[269,13,269,69,1],[270,13,270,116,1],[273,13,274,120,1],[277,13,277,36,1],[278,13,278,61,1],[279,13,279,36,1],[280,13,280,55,1],[281,9,281,10,1],[285,9,285,10,1],[300,9,300,10,1],[304,9,304,10,1],[321,9,321,10,1],[325,9,325,10,1],[327,13,327,74,1],[330,13,330,71,1],[333,13,333,36,1],[334,13,334,63,1],[335,9,335,10,1],[337,9,337,10,1],[338,13,340,26,1],[342,13,342,55,1],[344,13,352,29,1],[354,13,354,63,1],[355,13,355,67,1],[358,13,359,33,1],[360,13,361,55,1],[362,13,363,55,1],[364,13,365,55,1],[366,13,368,55,1],[372,13,375,68,1],[377,13,377,48,1],[378,13,378,52,1],[379,9,379,10,1],[382,9,382,10,1],[383,13,391,15,1],[392,9,392,10,1],[395,9,395,10,1],[396,13,396,63,1],[397,13,404,15,1],[405,9,405,10,1]]);
+    </script>
+  </body>
+</html>

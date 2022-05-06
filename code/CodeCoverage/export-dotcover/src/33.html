@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>C:\Users\fabio\uhasselt\SEM1\SOFTENG\inf-seng-20-21-team-projectgroep-10\code\VmsApi\VmsApi\Controllers\MeasurePointController.cs</title>
+    <script type="text/javascript" src="../js/dotcover.sourceview.js"></script>
+    <link rel="stylesheet" type="text/css" href="../css/dotcover.report.css" />
+  </head>
+  <body>
+    <pre id="content" class="source-code">
+using System;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
+using VmsApi.Data.Exceptions;
+using VmsApi.Data.Models;
+using VmsApi.Data.Repositories;
+using VmsApi.Mappers;
+using VmsApi.ViewModels;
+
+namespace VmsApi.Controllers
+{
+    [Route(&quot;api/[controller]&quot;)]
+    [ApiController]
+    public class MeasurePointController : ControllerBase
+    {
+        private readonly IMeasurePointRepo _measurePointRepo;
+        private readonly IMappings _mappings;
+        public MeasurePointController(IMeasurePointRepo measurePointReo, IMappings mappings)
+        {
+            _measurePointRepo = measurePointReo;
+            _mappings = mappings;
+        }
+
+        //[Authorize]
+        [HttpGet]
+        [Route(&quot;Points&quot;)]
+        public async Task&lt;IActionResult&gt; GetAll()
+        {
+            try
+            {
+                var points = await _measurePointRepo.GetAll();
+                return Ok(points);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.StackTrace);
+                return BadRequest();
+            }
+           
+        }
+
+        //[Authorize]
+        [HttpGet]
+        [Route(&quot;Points/{id}&quot;)]
+        public async Task&lt;IActionResult&gt; GetById(Guid id)
+        {
+            try
+            {
+                var point = await _measurePointRepo.GetById(id);
+                if (point == null)
+                {
+                    return NotFound(new ErrorMessageResult($&quot;No MeasurePoint found with Id of {id}&quot;));
+                }
+
+                return Ok(point);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.StackTrace);
+                return BadRequest();
+            }
+        }
+
+        //[Authorize]
+        [HttpPost]
+        [Route(&quot;Points&quot;)]
+        public async Task&lt;IActionResult&gt; Create(PostMapperMeasurePoint newMapperPoint)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(new ErrorMessageResult(&quot;PostMapperMeasurePoint model is invalid&quot;));
+                }
+
+                Console.WriteLine(&quot;debug info API CALL: create&quot;);
+                var newPoint = _mappings.MapToMeasurePoint(newMapperPoint);
+                var createdMeasurePoint = await _measurePointRepo.Create(newMapperPoint.GroupNumber, newPoint);
+
+                return Ok(createdMeasurePoint);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.StackTrace);
+                return BadRequest();
+            }
+        }
+
+        //[Authorize]
+        [HttpPut]
+        [Route(&quot;Points/{id}&quot;)]
+        public async Task&lt;IActionResult&gt; Update(Guid id, MeasurePoint updatedMeasurePoint)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(new ErrorMessageResult(&quot;Invalid MeasurePoint model&quot;));
+                }
+
+                Console.WriteLine(&quot;debug info API CALL: create&quot;);
+                var updatedResult = await _measurePointRepo.Update(id, updatedMeasurePoint);
+                return Ok(updatedResult);
+            }
+            catch (IdException e)
+            {
+                return NotFound(new ErrorMessageResult(e.Message));
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.StackTrace);
+                return BadRequest();
+            }
+
+        }
+
+    }
+}
+
+    </pre>
+    <script type="text/javascript">
+      highlightRanges([[18,9,18,93,1],[19,9,19,10,1],[20,13,20,49,1],[21,13,21,34,1],[22,9,22,10,1],[28,9,28,10,1],[30,13,30,14,1],[31,17,31,63,1],[32,17,32,35,1],[34,13,34,32,1],[35,13,35,14,1],[36,17,36,49,1],[37,17,37,37,1],[40,9,40,10,1],[46,9,46,10,1],[48,13,48,14,1],[49,17,49,65,1],[50,17,50,35,1],[51,17,51,18,1],[52,21,52,103,1],[55,17,55,34,1],[57,13,57,32,1],[58,13,58,14,1],[59,17,59,49,1],[60,17,60,37,1],[62,9,62,10,1],[68,9,68,10,1],[70,13,70,14,1],[71,17,71,41,1],[72,17,72,18,1],[73,21,73,106,1],[76,17,76,66,1],[77,17,77,76,1],[78,17,78,112,1],[80,17,80,48,1],[82,13,82,32,1],[83,13,83,14,1],[84,17,84,49,1],[85,17,85,37,1],[87,9,87,10,1],[93,9,93,10,1],[95,13,95,14,1],[96,17,96,41,1],[97,17,97,18,1],[98,21,98,93,1],[101,17,101,66,1],[102,17,102,93,1],[103,17,103,42,1],[105,13,105,34,1],[106,13,106,14,1],[107,17,107,68,1],[109,13,109,32,1],[110,13,110,14,1],[111,17,111,49,1],[112,17,112,37,1],[115,9,115,10,1]]);
+    </script>
+  </body>
+</html>
