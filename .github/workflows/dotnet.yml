@@ -24,4 +24,5 @@ jobs:
       working-directory: VmsApi/VmsApi
       run: dotnet build --no-restore
     - name: Test
+      working-directory: VmsApi/VmsApi.Test
       run: dotnet test --no-build --verbosity normal
