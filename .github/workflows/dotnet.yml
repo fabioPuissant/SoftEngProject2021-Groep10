@@ -18,8 +18,9 @@ jobs:
       with:
         dotnet-version: 5.0.x
     - name: Restore dependencies
+      working-directory: VmsApi
       run: dotnet restore
-    - name: Build
+    - name: Build1
       working-directory: VmsApi
       run: dotnet build --no-restore
     - name: Test
